@@ -77,15 +77,12 @@ list(title = sprintf("최장수국 · %s (2007)", le_max_country),
 
 ```{r}
 #| title: "전지구 기대수명: 비가중 vs 인구가중"
-glob_long <- bind_rows(
-  transmute(glob, year, value = uw, 기준 = "비가중(국가 평균)"),
-  transmute(glob, year, value = w,  기준 = "인구가중(사람 평균)"))
-ggplot(glob_long, aes(year, value, color = 기준)) +
-  geom_line(linewidth = 1.2) + geom_point(size = 1.8) +
-  scale_color_manual(values = c("비가중(국가 평균)"="#999999",
-                                "인구가중(사람 평균)"="#D55E00")) +
-  labs(x = "연도", y = "기대수명(세)", color = NULL) +
-  theme(legend.position = "bottom")
+glob |>
+  transmute(`연도` = year,
+            `비가중(국가 평균)` = round(uw, 1),
+            `인구가중(사람 평균)` = round(w, 1),
+            `차이(가중−비가중)` = round(w - uw, 1)) |>
+  knitr::kable(align = "c")
 ```
 
 ### Column {width="40%"}
