@@ -1,0 +1,33 @@
+/*-- scss:defaults --*/
+// Gapminder 대시보드 커스텀 테마
+$font-family-sans-serif: "Segoe UI", "Malgun Gothic", system-ui, sans-serif;
+$primary: #0072B2;
+$body-color: #1f2328;
+
+/*-- scss:rules --*/
+.navbar {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+// 카드 헤더 — 차분한 전문 톤
+.card-header {
+  font-weight: 600;
+  font-size: 0.95rem;
+  background: #f6f8fa;
+  border-bottom: 1px solid #e4e8ec;
+}
+
+// valuebox 살짝 강조
+.value-box-value { font-weight: 700; }
+.value-box-title { opacity: 0.92; }
+
+// 인사이트 카드 가독성
+.dashboard-insight { font-size: 0.92rem; line-height: 1.55; }
+.dashboard-insight b { color: #0072B2; }
+
+// 테이블 헤더
+table.dataTable thead th {
+  background: #f6f8fa;
+  font-weight: 600;
+}
