@@ -1,0 +1,15 @@
+project:
+  type: default
+  output-dir: docs
+  # 모든 코드 청크를 프로젝트 루트 기준으로 실행 → data/ 경로가 그대로 동작
+  execute-dir: project
+  # 렌더 대상: document/ 의 Quarto 문서만 (마크다운 보고서는 소스로 유지)
+  render:
+    - document/*.qmd
+
+# 문서별 YAML(format 등)은 각 .qmd 헤더가 우선한다.
+# 여기서는 프로젝트 공통 실행 옵션만 둔다.
+execute:
+  warning: false
+  message: false
+  freeze: auto

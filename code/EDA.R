@@ -1,6 +1,6 @@
 # EDA.R — Gapminder 탐색적 데이터 분석 (개정판)
 # 대상: data/gapminder.csv
-# 실행: Rscript EDA.R
+# 실행: 프로젝트 루트에서  Rscript code/EDA.R
 # 산출: 콘솔 요약 통계 + figures/ 폴더 PNG 차트 + figures/session_info.txt
 # 의존: ggplot2, dplyr, readr (base graphics 미사용)
 #
@@ -22,6 +22,9 @@ set.seed(42)  # jitter 등 난수 재현성
 # ---------------------------------------------------------------------------
 # 0. 로드 & 공통 유틸
 # ---------------------------------------------------------------------------
+# 루트/‘code’ 어디서 실행해도 data/·figures/가 루트 기준이 되도록 보정
+if (!file.exists("data/gapminder.csv") && file.exists("../data/gapminder.csv")) setwd("..")
+
 infile <- file.path("data", "gapminder.csv")
 stopifnot(file.exists(infile))
 gap <- read_csv(infile, show_col_types = FALSE)

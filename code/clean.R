@@ -1,12 +1,15 @@
 # clean.R — Gapminder 데이터 품질 확인(Data Quality Check)
 # 대상: data/gapminder.csv
-# 실행: Rscript clean.R
+# 실행: 프로젝트 루트에서  Rscript code/clean.R
 # 의존성 없음(base R). 콘솔에 품질 리포트를 출력한다.
 
 # ---------------------------------------------------------------------------
 # 0. 설정 및 로드
 # ---------------------------------------------------------------------------
 options(stringsAsFactors = FALSE, width = 100)
+
+# 루트/‘code’ 어디서 실행해도 data/를 찾도록 보정
+if (!file.exists("data/gapminder.csv") && file.exists("../data/gapminder.csv")) setwd("..")
 
 infile <- file.path("data", "gapminder.csv")
 if (!file.exists(infile)) stop(sprintf("파일을 찾을 수 없습니다: %s", infile))
