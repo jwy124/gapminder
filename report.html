@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>report</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="report_files/libs/clipboard/clipboard.min.js"></script>
+<script src="report_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="report_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="report_files/libs/quarto-html/popper.min.js"></script>
+<script src="report_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="report_files/libs/quarto-html/anchor.min.js"></script>
+<link href="report_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="report_files/libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="report_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="report_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="report_files/libs/bootstrap/bootstrap-efbb37e9afcc02144ebbc7afd12a776f.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+
+
+
+<section id="gapminder-분석-보고서-기대수명과-gdp의-흐름" class="level1">
+<h1>Gapminder 분석 보고서 — 기대수명과 GDP의 흐름</h1>
+<p>분석 대상: <code>data/gapminder.csv</code> 범위: 142개국 · 5개 대륙 · 1952–2007년(5년 간격, 12개 시점) · 총 1,704개 관측치 변수: <code>country</code>, <code>year</code>, <code>pop</code>(인구), <code>continent</code>, <code>lifeExp</code>(기대수명), <code>gdpPercap</code>(1인당 GDP, 국제달러)</p>
+<hr>
+<section id="요약-executive-summary" class="level2">
+<h2 class="anchored" data-anchor-id="요약-executive-summary">1. 요약 (Executive Summary)</h2>
+<ul>
+<li><strong>전 세계 기대수명은 1952년 49.1세에서 2007년 67.0세로 약 17.9세 상승</strong>했고, <strong>1인당 GDP는 평균 3,725 → 11,680 국제달러로 약 3.1배</strong> 증가했다.</li>
+<li>기대수명과 1인당 GDP는 양(+)의 관계를 가지나 <strong>선형이 아니라 로그형</strong>이다. 원자료 상관계수는 0.58이지만 GDP에 로그를 취하면 <strong>0.81로 강해진다.</strong> 즉 가난한 나라에서는 소득이 조금만 늘어도 수명이 크게 늘지만, 부유한 나라에서는 소득이 늘어도 수명 증가가 둔화된다.</li>
+<li><strong>대륙 간 격차는 여전히 크지만 기대수명 격차는 좁혀졌고, 소득 격차는 오히려 벌어졌다.</strong> 2007년 기준 최상위 대륙(오세아니아 80.7세)과 최하위 대륙(아프리카 54.8세)의 기대수명 차이는 약 26세다.</li>
+<li><strong>아시아가 가장 빠른 추격자</strong>다. 기대수명이 46.3 → 70.7세로 +24.4세 증가해 모든 대륙 중 증가폭이 가장 컸다(중국 +29.0세가 견인).</li>
+<li><strong>아프리카는 1990년대에 정체·후퇴</strong>했다. HIV/AIDS와 분쟁(르완다 대학살, 보츠와나·짐바브웨·레소토의 에이즈 위기)으로 기대수명이 1987년 53.3세에서 사실상 2002년까지 멈췄다.</li>
+</ul>
+<hr>
+</section>
+<section id="전-지구적-추세" class="level2">
+<h2 class="anchored" data-anchor-id="전-지구적-추세">2. 전 지구적 추세</h2>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>지표</th>
+<th>1952</th>
+<th>2007</th>
+<th>변화</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>평균 기대수명</td>
+<td>49.1세</td>
+<td>67.0세</td>
+<td><strong>+17.9세 (×1.37)</strong></td>
+</tr>
+<tr class="even">
+<td>평균 1인당 GDP</td>
+<td>3,725</td>
+<td>11,680</td>
+<td><strong>×3.14</strong></td>
+</tr>
+<tr class="odd">
+<td>평균 인구</td>
+<td>1,695만</td>
+<td>4,402만</td>
+<td>×2.60</td>
+</tr>
+</tbody>
+</table>
+<p>55년에 걸쳐 수명과 소득이 동시에 개선됐으나, 소득의 증가 배수(3.1배)가 수명의 증가 배수(1.4배)보다 훨씬 크다. 이는 수명이 생물학적 상한(약 80대)에 가까워질수록 추가 개선이 어려워지는 반면, 소득에는 그런 상한이 없기 때문이다.</p>
+<hr>
+</section>
+<section id="대륙별-요약통계량-2007년-기준" class="level2">
+<h2 class="anchored" data-anchor-id="대륙별-요약통계량-2007년-기준">3. 대륙별 요약통계량 (2007년 기준)</h2>
+<section id="기대수명-lifeexp" class="level3">
+<h3 class="anchored" data-anchor-id="기대수명-lifeexp">3.1 기대수명 <code>lifeExp</code></h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>대륙</th>
+<th>평균</th>
+<th>중앙값</th>
+<th>표준편차</th>
+<th>최소</th>
+<th>최대</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Oceania</td>
+<td>80.7</td>
+<td>80.7</td>
+<td>0.73</td>
+<td>80.2</td>
+<td>81.2</td>
+</tr>
+<tr class="even">
+<td>Europe</td>
+<td>77.6</td>
+<td>78.6</td>
+<td>2.98</td>
+<td>71.8</td>
+<td>81.8</td>
+</tr>
+<tr class="odd">
+<td>Americas</td>
+<td>73.6</td>
+<td>72.9</td>
+<td>4.44</td>
+<td>60.9</td>
+<td>80.7</td>
+</tr>
+<tr class="even">
+<td>Asia</td>
+<td>70.7</td>
+<td>72.4</td>
+<td>7.96</td>
+<td>43.8</td>
+<td>82.6</td>
+</tr>
+<tr class="odd">
+<td>Africa</td>
+<td>54.8</td>
+<td>52.9</td>
+<td>9.63</td>
+<td>39.6</td>
+<td>76.4</td>
+</tr>
+</tbody>
+</table>
+<p><strong>읽는 법</strong> - <strong>표준편차(대륙 내 불균등도)</strong>: 오세아니아(0.73)·유럽(2.98)은 국가 간 편차가 작아 동질적이다. 반면 <strong>아프리카(9.63)·아시아(7.96)는 편차가 커 내부 격차가 심하다.</strong> 아시아는 일본(82.6세)부터 아프가니스탄(43.8세)까지 한 대륙 안에 양극단이 공존한다. - <strong>평균 vs 중앙값</strong>: 아프리카는 평균(54.8) &gt; 중앙값(52.9)으로 소수의 상대적 고소득·고수명 국가가 평균을 끌어올린 구조다.</p>
+</section>
+<section id="인당-gdp-gdppercap" class="level3">
+<h3 class="anchored" data-anchor-id="인당-gdp-gdppercap">3.2 1인당 GDP <code>gdpPercap</code></h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>대륙</th>
+<th>평균</th>
+<th>중앙값</th>
+<th>표준편차</th>
+<th>최소</th>
+<th>최대</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Oceania</td>
+<td>29,810</td>
+<td>29,810</td>
+<td>6,541</td>
+<td>25,185</td>
+<td>34,435</td>
+</tr>
+<tr class="even">
+<td>Europe</td>
+<td>25,055</td>
+<td>28,054</td>
+<td>11,800</td>
+<td>5,937</td>
+<td>49,357</td>
+</tr>
+<tr class="odd">
+<td>Asia</td>
+<td>12,473</td>
+<td>4,471</td>
+<td>14,155</td>
+<td>944</td>
+<td>47,307</td>
+</tr>
+<tr class="even">
+<td>Americas</td>
+<td>11,003</td>
+<td>8,948</td>
+<td>9,713</td>
+<td>1,202</td>
+<td>42,952</td>
+</tr>
+<tr class="odd">
+<td>Africa</td>
+<td>3,089</td>
+<td>1,452</td>
+<td>3,618</td>
+<td>278</td>
+<td>13,207</td>
+</tr>
+</tbody>
+</table>
+<p><strong>읽는 법</strong> - <strong>아시아의 평균(12,473) ≫ 중앙값(4,471)</strong>: 극단적인 우편향 분포다. 쿠웨이트·싱가포르·홍콩·일본 등 소수 부국이 평균을 끌어올리지만, 대다수 아시아 국가의 실제 소득 수준은 중앙값(4,471)에 가깝다. <strong>이 대륙에서는 평균보다 중앙값이 대표값으로 더 적절하다.</strong> - <strong>유럽은 평균 &lt; 중앙값</strong>: 좌편향. 대부분 고소득으로 몰려 있고 일부 동유럽 국가가 아래로 끌어내린 형태로, 상대적으로 고르게 잘 사는 구조다. - <strong>아프리카</strong>는 평균·중앙값 모두 최저이며, 최대값(13,207)조차 다른 대륙의 평균에도 못 미친다.</p>
+<blockquote class="blockquote">
+<p><strong>소득 지표는 분포가 극도로 비대칭이므로 “평균”만으로 비교하면 오해를 부른다. 대륙 비교 시 중앙값과 표준편차를 함께 봐야 한다.</strong></p>
+</blockquote>
+<hr>
+</section>
+</section>
+<section id="시계열-흐름-대륙-평균" class="level2">
+<h2 class="anchored" data-anchor-id="시계열-흐름-대륙-평균">4. 시계열 흐름 (대륙 평균)</h2>
+<section id="기대수명-추이-세" class="level3">
+<h3 class="anchored" data-anchor-id="기대수명-추이-세">4.1 기대수명 추이 (세)</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>연도</th>
+<th>Africa</th>
+<th>Americas</th>
+<th>Asia</th>
+<th>Europe</th>
+<th>Oceania</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1952</td>
+<td>39.1</td>
+<td>53.3</td>
+<td>46.3</td>
+<td>64.4</td>
+<td>69.3</td>
+</tr>
+<tr class="even">
+<td>1972</td>
+<td>47.5</td>
+<td>62.4</td>
+<td>57.3</td>
+<td>70.8</td>
+<td>71.9</td>
+</tr>
+<tr class="odd">
+<td>1987</td>
+<td>53.3</td>
+<td>68.1</td>
+<td>64.9</td>
+<td>73.6</td>
+<td>75.3</td>
+</tr>
+<tr class="even">
+<td>1992</td>
+<td>53.6</td>
+<td>69.6</td>
+<td>66.5</td>
+<td>74.4</td>
+<td>76.9</td>
+</tr>
+<tr class="odd">
+<td>2002</td>
+<td>53.3</td>
+<td>72.4</td>
+<td>69.2</td>
+<td>76.7</td>
+<td>79.7</td>
+</tr>
+<tr class="even">
+<td>2007</td>
+<td>54.8</td>
+<td>73.6</td>
+<td>70.7</td>
+<td>77.6</td>
+<td>80.7</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>수렴(catch-up)</strong>: 1952년 아프리카-오세아니아 격차는 30.2세였으나 2007년 25.9세로 축소. 후발 대륙의 증가 속도가 더 빨라 격차가 좁혀지는 전형적 패턴.</li>
+<li><strong>아프리카의 정체</strong>: 1987년(53.3) → 1992년(53.6) → 2002년(53.3)으로 <strong>15년간 사실상 멈춤.</strong> 다른 모든 대륙이 꾸준히 상승하는 동안 아프리카만 평탄했다(원인은 §6).</li>
+</ul>
+</section>
+<section id="인당-gdp-추이-국제달러" class="level3">
+<h3 class="anchored" data-anchor-id="인당-gdp-추이-국제달러">4.2 1인당 GDP 추이 (국제달러)</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>연도</th>
+<th>Africa</th>
+<th>Americas</th>
+<th>Asia</th>
+<th>Europe</th>
+<th>Oceania</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1952</td>
+<td>1,253</td>
+<td>4,079</td>
+<td>5,195</td>
+<td>5,661</td>
+<td>10,298</td>
+</tr>
+<tr class="even">
+<td>1972</td>
+<td>2,340</td>
+<td>6,491</td>
+<td>8,187</td>
+<td>12,480</td>
+<td>16,417</td>
+</tr>
+<tr class="odd">
+<td>1987</td>
+<td>2,283</td>
+<td>7,793</td>
+<td>7,608</td>
+<td>17,214</td>
+<td>20,448</td>
+</tr>
+<tr class="even">
+<td>2007</td>
+<td>3,089</td>
+<td>11,003</td>
+<td>12,473</td>
+<td>25,054</td>
+<td>29,810</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>소득은 발산(divergence)</strong>: 기대수명과 달리 소득 격차는 <strong>벌어졌다.</strong> 유럽은 ×4.43으로 폭발적으로 성장한 반면 아프리카는 ×2.47에 그쳤다. 1952년 유럽-아프리카 소득 차이는 약 4,400달러였지만 2007년에는 약 22,000달러로 확대됐다.</li>
+<li><strong>아프리카의 잃어버린 20년</strong>: 1인당 GDP가 1977년(2,586) → 1992년(2,282)으로 오히려 <strong>감소</strong>했다. 구조조정·부채위기·내전의 시기와 일치한다.</li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="대륙별-성장-요약-1952-2007" class="level2">
+<h2 class="anchored" data-anchor-id="대륙별-성장-요약-1952-2007">5. 대륙별 성장 요약 (1952 → 2007)</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 40%">
+<col style="width: 27%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>대륙</th>
+<th>기대수명 변화</th>
+<th>GDP 배수</th>
+<th>특징</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Asia</strong></td>
+<td>46.3 → 70.7 (<strong>+24.4</strong>)</td>
+<td>×2.40</td>
+<td>수명 증가폭 1위, 가장 강력한 추격</td>
+</tr>
+<tr class="even">
+<td><strong>Americas</strong></td>
+<td>53.3 → 73.6 (+20.3)</td>
+<td>×2.70</td>
+<td>수명·소득 균형 성장</td>
+</tr>
+<tr class="odd">
+<td><strong>Africa</strong></td>
+<td>39.1 → 54.8 (+15.7)</td>
+<td>×2.47</td>
+<td>출발점 최저, 1990년대 정체</td>
+</tr>
+<tr class="even">
+<td><strong>Europe</strong></td>
+<td>64.4 → 77.6 (+13.2)</td>
+<td><strong>×4.43</strong></td>
+<td>소득 성장 1위, 수명은 상한 근접</td>
+</tr>
+<tr class="odd">
+<td><strong>Oceania</strong></td>
+<td>69.3 → 80.7 (+11.5)</td>
+<td>×2.89</td>
+<td>이미 높은 출발점, 안정적</td>
+</tr>
+</tbody>
+</table>
+<p>성숙한 경제(유럽·오세아니아)는 수명 증가폭이 작고(상한 효과), 후발 경제(아시아·아프리카)는 출발점이 낮아 증가폭이 컸다.</p>
+<hr>
+</section>
+<section id="기대수명과-gdp의-관계" class="level2">
+<h2 class="anchored" data-anchor-id="기대수명과-gdp의-관계">6. 기대수명과 GDP의 관계</h2>
+<section id="비선형로그형-관계" class="level3">
+<h3 class="anchored" data-anchor-id="비선형로그형-관계">6.1 비선형(로그형) 관계</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>구분</th>
+<th>원자료 상관</th>
+<th>log(GDP) 상관</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>전체</td>
+<td>0.584</td>
+<td><strong>0.808</strong></td>
+</tr>
+<tr class="even">
+<td>Oceania</td>
+<td>0.956</td>
+<td>0.960</td>
+</tr>
+<tr class="odd">
+<td>Europe</td>
+<td>0.781</td>
+<td>0.852</td>
+</tr>
+<tr class="even">
+<td>Americas</td>
+<td>0.558</td>
+<td>0.710</td>
+</tr>
+<tr class="odd">
+<td>Asia</td>
+<td>0.382</td>
+<td>0.689</td>
+</tr>
+<tr class="even">
+<td>Africa</td>
+<td>0.426</td>
+<td>0.535</td>
+</tr>
+</tbody>
+</table>
+<p>로그 변환 시 상관이 일관되게 강해진다 → <strong>“소득의 절대 증가”가 아니라 “소득의 비율 증가”가 수명과 연결된다.</strong> 연 소득 1,000→2,000달러의 효과가 40,000→41,000달러의 효과보다 훨씬 크다(수확체감).</p>
+<p><strong>아프리카의 상관이 가장 약한(0.54) 이유</strong>: 소득 외 요인(HIV/AIDS 유행, 분쟁, 보건 인프라)이 수명을 크게 좌우해 소득-수명 연결고리가 끊긴 사례가 많기 때문이다. 보츠와나는 소득이 높았음에도 에이즈로 수명이 급락했다.</p>
+</section>
+<section id="년-양극단" class="level3">
+<h3 class="anchored" data-anchor-id="년-양극단">6.2 2007년 양극단</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 11%">
+<col style="width: 44%">
+<col style="width: 44%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>최상위</th>
+<th>최하위</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>기대수명</td>
+<td>일본 82.6 · 홍콩 82.2 · 아이슬란드 81.8</td>
+<td>스와질란드 39.6 · 모잠비크 42.1 · 잠비아 42.4 (모두 아프리카)</td>
+</tr>
+<tr class="even">
+<td>1인당 GDP</td>
+<td>노르웨이 49,357 · 쿠웨이트 47,307 · 싱가포르 47,143</td>
+<td>콩고민주공화국 278 · 라이베리아 415 · 부룬디 430 (모두 아프리카)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+</section>
+</section>
+<section id="주목할-국가-사례" class="level2">
+<h2 class="anchored" data-anchor-id="주목할-국가-사례">7. 주목할 국가 사례</h2>
+<ul>
+<li><strong>중국</strong>: 기대수명 44.0 → 73.0세(<strong>+29.0</strong>). 표본 전체에서 가장 극적인 개선 — 인구 대국의 보건·소득 동반 향상.</li>
+<li><strong>일본</strong>: 63.0 → 82.6세(+19.6). 2007년 세계 1위 장수국.</li>
+<li><strong>짐바브웨</strong>: 48.5 → 43.5세(<strong>−5.0</strong>). 55년간 수명이 거꾸로 간 드문 사례(경제 붕괴 + 에이즈).</li>
+<li><strong>르완다</strong>: 1992년 대학살로 기대수명이 5년 새 <strong>−20.4세</strong> 폭락(가장 큰 단일 하락).</li>
+</ul>
+<section id="년-단위-최대-기대수명-하락-재난의-흔적" class="level3">
+<h3 class="anchored" data-anchor-id="년-단위-최대-기대수명-하락-재난의-흔적">5년 단위 최대 기대수명 하락 (재난의 흔적)</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>국가</th>
+<th>연도</th>
+<th>기대수명</th>
+<th>5년간 변화</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>르완다</td>
+<td>1992</td>
+<td>23.6</td>
+<td><strong>−20.4</strong> (대학살)</td>
+</tr>
+<tr class="even">
+<td>짐바브웨</td>
+<td>1997</td>
+<td>46.8</td>
+<td>−13.6 (에이즈)</td>
+</tr>
+<tr class="odd">
+<td>레소토</td>
+<td>2002</td>
+<td>44.6</td>
+<td>−11.0 (에이즈)</td>
+</tr>
+<tr class="even">
+<td>스와질란드</td>
+<td>2002</td>
+<td>43.9</td>
+<td>−10.4 (에이즈)</td>
+</tr>
+<tr class="odd">
+<td>보츠와나</td>
+<td>1997</td>
+<td>52.6</td>
+<td>−10.2 (에이즈)</td>
+</tr>
+<tr class="even">
+<td>캄보디아</td>
+<td>1977</td>
+<td>31.2</td>
+<td>−9.1 (크메르루주)</td>
+</tr>
+</tbody>
+</table>
+<p>이 표는 “평균은 꾸준히 오른다”는 낙관 서사 이면의 <strong>충격(shock)</strong> 을 보여준다. 모든 대규모 하락은 전쟁(르완다·캄보디아) 또는 HIV/AIDS(남부 아프리카)에서 비롯됐다.</p>
+<hr>
+</section>
+</section>
+<section id="결론" class="level2">
+<h2 class="anchored" data-anchor-id="결론">8. 결론</h2>
+<ol type="1">
+<li><strong>수명은 수렴, 소득은 발산.</strong> 지난 55년간 인류의 기대수명 격차는 좁혀졌지만 경제적 격차는 오히려 벌어졌다.</li>
+<li><strong>소득은 수명의 강력한, 그러나 수확체감하는 동인.</strong> 로그 관계가 이를 명확히 보여주며, 빈국에 대한 소득 지원이 수명 개선에 가장 효율적임을 시사한다.</li>
+<li><strong>평균만 보면 위험하다.</strong> 아시아·아프리카처럼 분포가 비대칭인 대륙은 중앙값·표준편차를 함께 봐야 실상을 파악할 수 있다.</li>
+<li><strong>아프리카는 별도의 서사가 필요하다.</strong> 1990년대 정체는 소득 부족만이 아니라 HIV/AIDS와 분쟁이라는 비경제적 충격의 결과였다.</li>
+</ol>
+<hr>
+<p><em>분석: pandas 3.0 · 원자료 Gapminder (jennybc/gapminder 패키지) · 모든 통계는 비가중 국가 평균 기준(인구 가중 아님).</em></p>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
