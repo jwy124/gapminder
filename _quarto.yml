@@ -3,8 +3,9 @@ project:
   output-dir: docs
   # 모든 코드 청크를 프로젝트 루트 기준으로 실행 → data/ 경로가 그대로 동작
   execute-dir: project
-  # 렌더 대상: document/ 의 Quarto 문서만 (마크다운 보고서는 소스로 유지)
+  # 렌더 대상: 랜딩 페이지(index) + document/ 의 Quarto 문서
   render:
+    - index.qmd
     - document/*.qmd
 
 # 문서별 YAML(format 등)은 각 .qmd 헤더가 우선한다.

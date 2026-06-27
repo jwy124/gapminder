@@ -1,0 +1,101 @@
+---
+title: "Gapminder 데이터 분석"
+subtitle: "기대수명과 1인당 GDP의 55년 (1952–2007)"
+lang: ko
+format:
+  html:
+    theme: [cosmo, document/custom.scss]
+    embed-resources: true
+    toc: false
+    page-layout: full
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+library(readr); library(dplyr)
+infile <- if (file.exists("data/gapminder.csv")) "data/gapminder.csv" else "../data/gapminder.csv"
+gap <- read_csv(infile, show_col_types = FALSE)
+FIRST <- min(gap$year); LAST <- max(gap$year)
+g0 <- filter(gap, year==FIRST); g1 <- filter(gap, year==LAST)
+le_gain <- round(mean(g1$lifeExp) - mean(g0$lifeExp), 1)
+le_2007 <- round(mean(g1$lifeExp), 1)
+top <- g1[which.max(g1$lifeExp), ]
+```
+
+142개국·5개 대륙의 1952–2007년 패널 데이터로, **기대수명과 소득의 관계·수렴·예외**를 탐색한 분석입니다.
+
+::: {.grid}
+
+::: {.g-col-12 .g-col-md-4}
+::: {.card .text-center}
+::: {.card-body}
+### `r le_2007`세 {.mb-0}
+세계 평균 기대수명 (2007)
+:::
+:::
+:::
+
+::: {.g-col-12 .g-col-md-4}
+::: {.card .text-center}
+::: {.card-body}
+### +`r le_gain`세 {.mb-0}
+55년간 기대수명 증가
+:::
+:::
+:::
+
+::: {.g-col-12 .g-col-md-4}
+::: {.card .text-center}
+::: {.card-body}
+### `r round(top$lifeExp,1)`세 {.mb-0}
+최장수국 · `r top$country` (2007)
+:::
+:::
+:::
+
+:::
+
+<br>
+
+## 결과물 바로가기
+
+::: {.grid}
+
+::: {.g-col-12 .g-col-md-6}
+::: {.card}
+::: {.card-body}
+#### 📊 인터랙티브 대시보드
+연도 애니메이션 버블차트, 호버 툴팁, 검색·정렬 가능한 데이터 탐색까지 — 한 화면에서 둘러보는 4페이지 대시보드.
+
+[대시보드 열기 →](document/EDA_dashboard.html){.btn .btn-primary}
+:::
+:::
+:::
+
+::: {.g-col-12 .g-col-md-6}
+::: {.card}
+::: {.card-body}
+#### 📄 분석 보고서
+인구가중·수렴(σ·β)·소득 대비 잔차까지 다룬 재현 가능한 심층 보고서(차트 포함).
+
+[보고서 열기 →](document/EDA_report.html){.btn .btn-outline-primary}
+:::
+:::
+:::
+
+:::
+
+## 핵심 발견
+
+- **수명은 수렴, 소득은 발산** — 대륙 간 기대수명 격차는 좁혀졌지만 경제 격차는 벌어졌다.
+- **로그형 수확체감** — 기대수명은 `log(GDP)`에 거의 선형. 소득의 *비율* 증가가 수명과 연결된다.
+- **소득은 충분조건이 아니다** — 회귀선에서 크게 벗어난 국가들(남부 아프리카 에이즈 유행국·자원경제)이 존재한다.
+
+---
+
+::: {.text-muted}
+데이터: [Gapminder](https://www.gapminder.org/) · 분석: R(ggplot2·dplyr·plotly·DT) + Quarto · 소스: [github.com/jwy124/gapminder](https://github.com/jwy124/gapminder)
+:::

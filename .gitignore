@@ -3,13 +3,14 @@
 .RData
 .Ruserdata
 
-# Quarto 렌더 산출물 (output-dir) 및 캐시 — 빌드물이므로 제외
-/docs/
+# Quarto 캐시
 /.quarto/
 /_freeze/
 
-# 소스 옆에 생기는 in-place 렌더 잔여물
-*.html
-*_files/
+# 소스 옆에 생기는 in-place 렌더 잔여물 (docs/ 출력은 Pages 배포용으로 추적)
+/*.html
+/*_files/
+/document/*.html
+/document/*_files/
 
 **/*.quarto_ipynb
