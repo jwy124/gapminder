@@ -1,0 +1,336 @@
+---
+title: "Gapminder 탐색적 데이터 분석 보고서"
+subtitle: "기대수명과 1인당 GDP의 흐름 · 대륙별 비교"
+author: "정원영"
+date: "2026-06-27"
+lang: ko
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    toc-title: "목차"
+    number-sections: true
+    code-fold: true
+    code-summary: "코드 보기"
+    code-tools: true
+    fig-width: 9
+    fig-height: 5.5
+    df-print: kable
+    embed-resources: true
+execute:
+  warning: false
+  message: false
+  echo: true
+knitr:
+  opts_chunk:
+    dev: "png"
+    dpi: 110
+---
+
+```{r setup}
+library(readr); library(dplyr); library(ggplot2)
+set.seed(42)  # jitter 재현성
+
+# document/ 또는 프로젝트 루트 어디서 렌더해도 동작
+infile <- if (file.exists("data/gapminder.csv")) "data/gapminder.csv" else "../data/gapminder.csv"
+gap <- read_csv(infile, show_col_types = FALSE)
+gap$loggdp <- log(gap$gdpPercap)
+FIRST <- min(gap$year); LAST <- max(gap$year)
+
+theme_set(theme_minimal(base_size = 12))
+cont_colors <- c(Africa="#E69F00", Americas="#56B4E9", Asia="#009E73",
+                 Europe="#CC79A7", Oceania="#0072B2")
+skew <- function(x){x<-x[!is.na(x)];m<-mean(x);mean((x-m)^3)/(mean((x-m)^2))^1.5}
+kurt <- function(x){x<-x[!is.na(x)];m<-mean(x);mean((x-m)^4)/(mean((x-m)^2))^2-3}
+```
+
+::: {.callout-note}
+이 보고서는 `data/gapminder.csv`(142개국 × 5개 대륙 × 12개 시점, 1952–2007)를 분석한다.
+모든 차트·표는 렌더 시점에 **코드로 직접 재생성**되므로 데이터가 바뀌면 보고서도 자동 갱신된다.
+별도 명시가 없으면 통계는 **비가중 국가 평균**이며, [5장](#sec-weighted)에서 인구가중과 비교한다.
+:::
+
+# 데이터 개요
+
+```{r overview}
+tibble(
+  지표 = c("관측치","국가","대륙","연도 범위","시점 수"),
+  값   = c(sprintf("%d행 × %d열", nrow(gap), ncol(gap)-1),
+           as.character(n_distinct(gap$country)),
+           as.character(n_distinct(gap$continent)),
+           sprintf("%d–%d", FIRST, LAST),
+           as.character(n_distinct(gap$year)))
+)
+
+gap |> distinct(country, continent) |> count(continent, name = "국가 수")
+```
+
+::: {.callout-warning}
+**Oceania는 호주·뉴질랜드 2개국뿐**이다. 대륙 내 분산통계(표준편차·IQR·박스플롯)는 표본이 2개라 해석에 주의한다.
+:::
+
+# 단변량 분포 — 형태 진단
+
+```{r shape-table}
+tibble(
+  변수 = c("lifeExp","gdpPercap","pop"),
+  왜도 = c(skew(gap$lifeExp), skew(gap$gdpPercap), skew(gap$pop)),
+  첨도 = c(kurt(gap$lifeExp), kurt(gap$gdpPercap), kurt(gap$pop))
+) |>
+  mutate(across(where(is.numeric), \(x) round(x, 2)),
+         진단 = ifelse(abs(왜도) > 1, "강한 우편향 → 로그/중앙값 권장", "근사 대칭"))
+```
+
+`gdpPercap`(왜도 3.85)·`pop`(8.33)은 극단적 우편향이다. **이후 소득 분석은 로그 스케일을 사용한다.**
+
+```{r hist-life}
+#| label: fig-hist-life
+#| fig-cap: "기대수명 분포 (전 연도 풀링)"
+ggplot(gap, aes(lifeExp)) +
+  geom_histogram(bins = 30, fill = "#56B4E9", color = "white") +
+  labs(x = "기대수명(세)", y = "관측치")
+```
+
+```{r hist-gdp}
+#| label: fig-hist-gdp
+#| fig-cap: "1인당 GDP 분포 (로그 스케일)"
+ggplot(gap, aes(gdpPercap)) +
+  geom_histogram(bins = 40, fill = "#009E73", color = "white") +
+  scale_x_log10(labels = scales::comma) +
+  labs(x = "1인당 GDP (log10)", y = "관측치")
+```
+
+# 분포의 시간적 이동 {#sec-shift}
+
+전 연도를 풀링하면 이봉형처럼 보이지만, 이는 **착시**다. 연도별로 분리하면 저수명 봉우리가 우측으로 이동하며 단봉형에 수렴한다.
+
+```{r density-year}
+#| label: fig-density
+#| fig-cap: "기대수명 분포의 시간 이동 (1952 → 1977 → 2007)"
+ggplot(filter(gap, year %in% c(1952, 1977, 2007)),
+       aes(lifeExp, fill = factor(year), color = factor(year))) +
+  geom_density(alpha = 0.35) +
+  scale_fill_brewer(palette = "Set1") + scale_color_brewer(palette = "Set1") +
+  labs(x = "기대수명(세)", y = "밀도", fill = "연도", color = "연도")
+```
+
+# 대륙별 분포 (2007)
+
+```{r continent-2007}
+g07 <- filter(gap, year == LAST)
+g07 |> group_by(continent) |>
+  summarise(n = n(), 평균 = mean(lifeExp), 중앙값 = median(lifeExp),
+            표준편차 = sd(lifeExp), IQR = IQR(lifeExp), .groups = "drop") |>
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
+```
+
+```{r box-2007}
+#| label: fig-box
+#| fig-cap: "대륙별 기대수명 분포 (2007). Oceania는 표본 2개 — 해석 주의."
+ggplot(g07, aes(reorder(continent, lifeExp, median), lifeExp, fill = continent)) +
+  geom_boxplot(alpha = 0.8, outlier.alpha = 0.5) +
+  geom_jitter(width = 0.15, alpha = 0.35, size = 1) +
+  scale_fill_manual(values = cont_colors, guide = "none") +
+  coord_flip() + labs(x = NULL, y = "기대수명(세)")
+```
+
+표준편차가 대륙 내 동질성을 드러낸다. 유럽(2.98)은 좁고, **아프리카(9.63)·아시아(7.96)는 내부 격차가 크다.**
+
+# 비가중 vs 인구가중 {#sec-weighted}
+
+국가당 1표(비가중)는 중국(13억)과 아이슬란드(30만)를 동급으로 본다. **인구가중**은 "평균적인 사람"의 경험을 반영한다.
+
+```{r weighted}
+glob <- gap |> group_by(year) |>
+  summarise(`비가중` = mean(lifeExp), `인구가중` = weighted.mean(lifeExp, pop),
+            .groups = "drop")
+glob |> mutate(`차이` = round(`인구가중` - `비가중`, 1),
+               across(c(`비가중`,`인구가중`), \(x) round(x, 1)))
+```
+
+```{r weighted-plot}
+#| label: fig-weighted
+#| fig-cap: "전지구 기대수명: 비가중(국가 평균) vs 인구가중(사람 평균)"
+glob_long <- bind_rows(
+  transmute(glob, year, value = `비가중`, 기준 = "비가중(국가 평균)"),
+  transmute(glob, year, value = `인구가중`, 기준 = "인구가중(사람 평균)"))
+ggplot(glob_long, aes(year, value, color = 기준)) +
+  geom_line(linewidth = 1.2) + geom_point(size = 1.8) +
+  scale_color_manual(values = c("비가중(국가 평균)"="#999999",
+                                "인구가중(사람 평균)"="#D55E00")) +
+  labs(x = "연도", y = "기대수명(세)", color = NULL)
+```
+
+::: {.callout-tip}
+## 발견 — 부호 역전
+1952년에는 인구가중 < 비가중(−0.1세)으로 인구 대국이 평균 이하였다. 그러나 2007년에는 인구가중 > 비가중(+1.9세)으로 **중국·인도가 세계 평균을 추월**했다. 가중 방식의 선택이 결론을 바꾼다.
+:::
+
+# 수렴의 정량화 {#sec-converge}
+
+## σ-수렴 — 국가 간 분산이 줄어드는가
+
+```{r sigma}
+sigma <- gap |> group_by(year) |>
+  summarise(`기대수명 CV` = sd(lifeExp)/mean(lifeExp),
+            `log(GDP) CV` = sd(loggdp)/mean(loggdp), .groups = "drop")
+sigma |> mutate(across(-year, \(x) round(x, 4)))
+```
+
+```{r sigma-plot}
+#| label: fig-sigma
+#| fig-cap: "σ-수렴: 변동계수(sd/mean) 추이. 값이 줄면 수렴."
+sig_long <- bind_rows(
+  transmute(sigma, year, cv = `기대수명 CV`, 지표 = "기대수명"),
+  transmute(sigma, year, cv = `log(GDP) CV`, 지표 = "log(1인당 GDP)"))
+ggplot(sig_long, aes(year, cv, color = 지표)) +
+  geom_line(linewidth = 1.2) + geom_point(size = 1.8) +
+  labs(x = "연도", y = "변동계수 (sd/mean)", color = NULL)
+```
+
+기대수명 CV는 0.249→0.180으로 **수렴**, log(GDP) CV는 0.137→0.157로 **발산**한다. 수명 격차는 좁혀지고 소득 격차는 벌어진다.
+
+## β-수렴 — 가난했던 나라가 더 빨리 따라잡는가
+
+```{r beta}
+beta <- inner_join(
+  filter(gap, year==FIRST) |> select(country, continent, le0 = lifeExp),
+  filter(gap, year==LAST)  |> select(country, le1 = lifeExp), by = "country") |>
+  mutate(growth = le1 - le0)
+bfit <- lm(growth ~ le0, data = beta)
+cat(sprintf("회귀: growth = %.1f + (%.3f)·le0,  기울기 p = %.2e  → %s\n",
+            coef(bfit)[1], coef(bfit)[2], summary(bfit)$coefficients[2,4],
+            ifelse(coef(bfit)[2] < 0, "음의 기울기 = β-수렴 성립", "발산")))
+```
+
+```{r beta-plot}
+#| label: fig-beta
+#| fig-cap: "β-수렴: 초기 기대수명(1952) vs 이후 증가폭(→2007)"
+ggplot(beta, aes(le0, growth, color = continent)) +
+  geom_point(alpha = 0.8, size = 2) +
+  geom_smooth(method = "lm", formula = y~x, color = "black", se = TRUE) +
+  scale_color_manual(values = cont_colors) +
+  labs(x = "1952 기대수명(세)", y = "1952→2007 증가폭(세)", color = "대륙")
+```
+
+기울기가 유의하게 음수 → **출발점이 낮았던 국가일수록 더 크게 따라잡았다.**
+
+# 기대수명 vs 소득 — 모형과 잔차 {#sec-model}
+
+```{r model}
+fit <- lm(lifeExp ~ loggdp, data = gap)
+cat(sprintf("lifeExp ~ log(GDP):  R² = %.3f,  기울기 = %.2f세 / log단위\n",
+            summary(fit)$r.squared, coef(fit)[2]))
+```
+
+소득이 로그 1단위(약 2.7배) 늘 때 기대수명이 평균 8.4세 증가 — 수확체감.
+
+```{r corr-year}
+#| label: fig-corr
+#| fig-cap: "연도별 기대수명–소득 상관계수 (관계 강도의 변화)"
+gap |> group_by(year) |>
+  summarise(r = cor(lifeExp, loggdp), .groups = "drop") |>
+  ggplot(aes(year, r)) +
+  geom_line(linewidth = 1.2, color = "#0072B2") + geom_point(size = 2) +
+  ylim(0, 1) + labs(x = "연도", y = "Pearson r (log GDP)")
+```
+
+```{r scatter-2007}
+#| label: fig-scatter
+#| fig-cap: "기대수명 vs 1인당 GDP (2007, 버블=인구)"
+ggplot(g07, aes(gdpPercap, lifeExp, color = continent, size = pop)) +
+  geom_point(alpha = 0.7) +
+  scale_x_log10(labels = scales::comma) +
+  scale_size(range = c(1.5, 16), guide = "none") +
+  scale_color_manual(values = cont_colors) +
+  labs(x = "1인당 GDP (log10)", y = "기대수명(세)", color = "대륙")
+```
+
+## 소득 대비 잔차 — 이상국가 식별
+
+회귀선에서 가장 벗어난 국가는 소득만으로 설명되지 않는다.
+
+```{r residuals}
+g07r <- g07 |> mutate(resid = lifeExp - predict(fit, pick(everything())))
+over  <- g07r |> slice_max(resid, n = 5) |>
+  transmute(country, continent, gdpPercap = round(gdpPercap), lifeExp, resid = round(resid,1))
+under <- g07r |> slice_min(resid, n = 5) |>
+  transmute(country, continent, gdpPercap = round(gdpPercap), lifeExp, resid = round(resid,1))
+knitr::kable(over,  caption = "소득 대비 장수 (양의 잔차)")
+knitr::kable(under, caption = "부유하지만 단명 (음의 잔차 — 에이즈·자원경제)")
+```
+
+```{r residual-plot}
+#| label: fig-resid
+#| fig-cap: "소득 대비 기대수명 — 회귀선에서 가장 벗어난 국가"
+lab <- bind_rows(over, under)
+ggplot(g07r, aes(gdpPercap, lifeExp)) +
+  geom_point(aes(color = continent), alpha = 0.5, size = 2) +
+  geom_smooth(method = "lm", formula = y~log(x), color = "black", se = FALSE) +
+  geom_point(data = lab, color = "black", shape = 21, size = 3) +
+  geom_text(data = lab, aes(label = country), size = 3, vjust = -0.8) +
+  scale_x_log10(labels = scales::comma) +
+  scale_color_manual(values = cont_colors) +
+  labs(x = "1인당 GDP (log10)", y = "기대수명(세)", color = "대륙")
+```
+
+음의 잔차 그룹은 **남부 아프리카 에이즈 유행국**(스와질란드·보츠와나·남아공)과 **자원경제**(적도기니·앙골라)다. 소득은 강력한 동인이지만 충분조건은 아니다.
+
+# 성장의 동조성 (1952 → 2007)
+
+```{r growth}
+#| label: fig-growth
+#| fig-cap: "소득 성장 vs 수명 성장 (국가별). 음수 영역 = 수명 후퇴국."
+gr <- inner_join(
+  filter(gap, year==FIRST) |> select(country, continent, le0=lifeExp, g0=gdpPercap),
+  filter(gap, year==LAST)  |> select(country, le1=lifeExp, g1=gdpPercap), by="country") |>
+  mutate(le_gain = le1 - le0, gdp_ratio = g1 / g0)
+cat(sprintf("cor(log 소득배수, 수명증가폭) = %.3f (약한 양의 관계)\n",
+            cor(log(gr$gdp_ratio), gr$le_gain)))
+ggplot(gr, aes(gdp_ratio, le_gain, color = continent)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey60") +
+  geom_point(alpha = 0.8, size = 2) +
+  scale_x_log10() + scale_color_manual(values = cont_colors) +
+  labs(x = "1인당 GDP 배수 (log10)", y = "기대수명 증가폭(세)", color = "대륙")
+```
+
+# 국가 궤적 — 후퇴국 강조
+
+```{r trajectories}
+#| label: fig-traj
+#| fig-cap: "국가별 기대수명 궤적 (주황 = 55년간 후퇴한 국가)"
+#| fig-width: 12
+#| fig-height: 4.5
+decliners <- gr |> filter(le_gain < 0) |> pull(country)
+gap_hl <- gap |> mutate(후퇴 = country %in% decliners)
+ggplot(gap_hl, aes(year, lifeExp, group = country)) +
+  geom_line(data = filter(gap_hl, !후퇴), color = "grey80", alpha = 0.6) +
+  geom_line(data = filter(gap_hl, 후퇴), color = "#D55E00", linewidth = 0.9) +
+  facet_wrap(~continent, nrow = 1) +
+  labs(x = "연도", y = "기대수명(세)")
+```
+
+55년간 기대수명이 후퇴한 국가는 **`r paste(decliners, collapse=", ")`** 두 곳이다.
+
+# 핵심 발견 {.unnumbered}
+
+1. **분포** — `gdpPercap`·`pop`은 강한 우편향 → 로그·중앙값 필수. '이봉형'은 풀링 착시였다([3장](#sec-shift)).
+2. **인구가중 ≠ 비가중** — '평균적 사람'의 수명이 2007년 '평균적 국가'를 추월(부호 역전). 가중 선택이 결론을 바꾼다([5장](#sec-weighted)).
+3. **수렴** — 기대수명은 σ·β 모두 수렴, 소득은 σ-발산([6장](#sec-converge)).
+4. **관계** — `lifeExp ~ log(GDP)` R² ≈ 0.65, 로그형 수확체감. 강도는 1987년 정점 후 약화([7장](#sec-model)).
+5. **잔차** — 부유하지만 단명한 에이즈·자원국 vs 소득 대비 장수국이 분리. 소득은 충분조건이 아니다.
+6. **후퇴국** — 소수(스와질란드·짐바브웨)지만 존재. 성장은 자동 보장이 아니다.
+
+---
+
+```{r session, echo=FALSE}
+cat("재현 환경:\n"); cat(R.version.string, "\n")
+cat("주요 패키지:",
+    paste(sprintf("%s %s", c("ggplot2","dplyr","readr"),
+                  c(as.character(packageVersion("ggplot2")),
+                    as.character(packageVersion("dplyr")),
+                    as.character(packageVersion("readr")))), collapse = " · "), "\n")
+```
+
+*본 보고서는 `EDA.R`의 분석을 Quarto 문서로 재구성한 재현 가능한 산출물이다. 렌더: `quarto render document/EDA_report.qmd`*

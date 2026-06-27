@@ -1,0 +1,231 @@
+---
+title: "Gapminder EDA 대시보드"
+author: "정원영"
+date: "2026-06-27"
+lang: ko
+format:
+  dashboard:
+    theme: cosmo
+    nav-buttons: [github]
+    scrolling: false
+    embed-resources: true
+execute:
+  warning: false
+  message: false
+  echo: false
+knitr:
+  opts_chunk:
+    dev: "png"
+    dpi: 110
+---
+
+```{r setup}
+library(readr); library(dplyr); library(ggplot2)
+set.seed(42)
+
+infile <- if (file.exists("data/gapminder.csv")) "data/gapminder.csv" else "../data/gapminder.csv"
+gap <- read_csv(infile, show_col_types = FALSE)
+gap$loggdp <- log(gap$gdpPercap)
+FIRST <- min(gap$year); LAST <- max(gap$year)
+
+theme_set(theme_minimal(base_size = 12))
+cont_colors <- c(Africa="#E69F00", Americas="#56B4E9", Asia="#009E73",
+                 Europe="#CC79A7", Oceania="#0072B2")
+
+g07 <- filter(gap, year == LAST)
+glob <- gap |> group_by(year) |>
+  summarise(uw = mean(lifeExp), w = weighted.mean(lifeExp, pop),
+            gdp = mean(gdpPercap), .groups = "drop")
+
+# 핵심 KPI
+le_gain   <- round(glob$uw[glob$year==LAST] - glob$uw[glob$year==FIRST], 1)
+gdp_mult  <- round(glob$gdp[glob$year==LAST] / glob$gdp[glob$year==FIRST], 1)
+fit       <- lm(lifeExp ~ loggdp, data = gap)
+r2        <- round(summary(fit)$r.squared, 2)
+n_country <- n_distinct(gap$country)
+```
+
+# 개요
+
+## Row {height="25%"}
+
+```{r}
+#| content: valuebox
+#| title: "분석 국가"
+list(icon = "globe-americas", color = "primary", value = n_country)
+```
+
+```{r}
+#| content: valuebox
+#| title: "분석 기간"
+list(icon = "calendar-range", color = "secondary",
+     value = sprintf("%d–%d", FIRST, LAST))
+```
+
+```{r}
+#| content: valuebox
+#| title: "기대수명 증가 (세계 평균)"
+list(icon = "heart-pulse", color = "success",
+     value = sprintf("+%.1f세", le_gain))
+```
+
+```{r}
+#| content: valuebox
+#| title: "1인당 GDP 배수"
+list(icon = "graph-up-arrow", color = "info",
+     value = sprintf("×%.1f", gdp_mult))
+```
+
+## Row {height="75%"}
+
+### Column {width="60%"}
+
+```{r}
+#| title: "전지구 기대수명: 비가중 vs 인구가중"
+glob_long <- bind_rows(
+  transmute(glob, year, value = uw, 기준 = "비가중(국가 평균)"),
+  transmute(glob, year, value = w,  기준 = "인구가중(사람 평균)"))
+ggplot(glob_long, aes(year, value, color = 기준)) +
+  geom_line(linewidth = 1.2) + geom_point(size = 1.8) +
+  scale_color_manual(values = c("비가중(국가 평균)"="#999999",
+                                "인구가중(사람 평균)"="#D55E00")) +
+  labs(x = "연도", y = "기대수명(세)", color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+### Column {width="40%"}
+
+```{r}
+#| title: "대륙별 평균 1인당 GDP (로그)"
+gap |> group_by(continent, year) |>
+  summarise(gdpPercap = mean(gdpPercap), .groups = "drop") |>
+  ggplot(aes(year, gdpPercap, color = continent)) +
+  geom_line(linewidth = 1) + geom_point(size = 1.3) +
+  scale_y_log10(labels = scales::comma) +
+  scale_color_manual(values = cont_colors) +
+  labs(x = "연도", y = "1인당 GDP (log10)", color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+# 분포 · 대륙
+
+## Row
+
+### Column {.tabset}
+
+```{r}
+#| title: "분포의 시간 이동"
+ggplot(filter(gap, year %in% c(1952, 1977, 2007)),
+       aes(lifeExp, fill = factor(year), color = factor(year))) +
+  geom_density(alpha = 0.35) +
+  scale_fill_brewer(palette = "Set1") + scale_color_brewer(palette = "Set1") +
+  labs(x = "기대수명(세)", y = "밀도", fill = "연도", color = "연도")
+```
+
+```{r}
+#| title: "1인당 GDP 분포 (로그)"
+ggplot(gap, aes(gdpPercap)) +
+  geom_histogram(bins = 40, fill = "#009E73", color = "white") +
+  scale_x_log10(labels = scales::comma) +
+  labs(x = "1인당 GDP (log10)", y = "관측치")
+```
+
+### Column
+
+```{r}
+#| title: "대륙별 기대수명 분포 (2007)"
+ggplot(g07, aes(reorder(continent, lifeExp, median), lifeExp, fill = continent)) +
+  geom_boxplot(alpha = 0.8, outlier.alpha = 0.5) +
+  geom_jitter(width = 0.15, alpha = 0.35, size = 1) +
+  scale_fill_manual(values = cont_colors, guide = "none") +
+  coord_flip() + labs(x = NULL, y = "기대수명(세)")
+```
+
+## Row {height="38%"}
+
+```{r}
+#| title: "대륙별 요약통계 (2007)"
+g07 |> group_by(대륙 = continent) |>
+  summarise(`국가 수` = n(),
+            `평균 수명` = round(mean(lifeExp), 1),
+            `중앙값` = round(median(lifeExp), 1),
+            `표준편차` = round(sd(lifeExp), 2),
+            `평균 GDP` = round(mean(gdpPercap)),
+            .groups = "drop") |>
+  knitr::kable()
+```
+
+# 수렴 · 모형
+
+## Row
+
+### Column
+
+```{r}
+#| title: "σ-수렴: 국가 간 변동계수 추이"
+sigma <- gap |> group_by(year) |>
+  summarise(`기대수명` = sd(lifeExp)/mean(lifeExp),
+            `log(GDP)` = sd(loggdp)/mean(loggdp), .groups = "drop")
+bind_rows(
+  transmute(sigma, year, cv = `기대수명`, 지표 = "기대수명"),
+  transmute(sigma, year, cv = `log(GDP)`, 지표 = "log(1인당 GDP)")) |>
+  ggplot(aes(year, cv, color = 지표)) +
+  geom_line(linewidth = 1.2) + geom_point(size = 1.8) +
+  labs(x = "연도", y = "변동계수 (sd/mean)", color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+```{r}
+#| title: "β-수렴: 초기 수명 vs 이후 증가폭"
+beta <- inner_join(
+  filter(gap, year==FIRST) |> select(country, continent, le0 = lifeExp),
+  filter(gap, year==LAST)  |> select(country, le1 = lifeExp), by = "country") |>
+  mutate(growth = le1 - le0)
+ggplot(beta, aes(le0, growth, color = continent)) +
+  geom_point(alpha = 0.8, size = 2) +
+  geom_smooth(method = "lm", formula = y~x, color = "black", se = TRUE) +
+  scale_color_manual(values = cont_colors) +
+  labs(x = "1952 기대수명(세)", y = "1952→2007 증가폭(세)", color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+### Column
+
+```{r}
+#| title: "기대수명 vs 1인당 GDP (2007, 버블=인구)"
+ggplot(g07, aes(gdpPercap, lifeExp, color = continent, size = pop)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", formula = y~log(x), color = "black",
+              se = FALSE, linewidth = 0.7, show.legend = FALSE) +
+  scale_x_log10(labels = scales::comma) +
+  scale_size(range = c(1.5, 16), guide = "none") +
+  scale_color_manual(values = cont_colors) +
+  labs(x = "1인당 GDP (log10)", y = "기대수명(세)", color = NULL,
+       subtitle = sprintf("lifeExp ~ log(GDP):  R² = %.2f", r2)) +
+  theme(legend.position = "bottom")
+```
+
+## Row {height="40%"}
+
+### Column
+
+```{r}
+#| title: "소득 대비 장수 (양의 잔차 상위)"
+g07r <- g07 |> mutate(resid = lifeExp - predict(fit, pick(everything())))
+g07r |> slice_max(resid, n = 5) |>
+  transmute(국가 = country, 대륙 = continent,
+            GDP = round(gdpPercap), 수명 = round(lifeExp,1),
+            잔차 = round(resid,1)) |>
+  knitr::kable()
+```
+
+### Column
+
+```{r}
+#| title: "부유하지만 단명 (음의 잔차 — 에이즈·자원경제)"
+g07r |> slice_min(resid, n = 5) |>
+  transmute(국가 = country, 대륙 = continent,
+            GDP = round(gdpPercap), 수명 = round(lifeExp,1),
+            잔차 = round(resid,1)) |>
+  knitr::kable()
+```
