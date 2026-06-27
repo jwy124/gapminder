@@ -2,3 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# 렌더링 산출물 (소스 .md/.R 에서 생성)
+*.html
+*_files/
