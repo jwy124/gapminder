@@ -37,12 +37,13 @@ glob <- gap |> group_by(year) |>
   summarise(uw = mean(lifeExp), w = weighted.mean(lifeExp, pop),
             gdp = mean(gdpPercap), .groups = "drop")
 
-# 핵심 KPI
-le_gain   <- round(glob$uw[glob$year==LAST] - glob$uw[glob$year==FIRST], 1)
-gdp_mult  <- round(glob$gdp[glob$year==LAST] / glob$gdp[glob$year==FIRST], 1)
+# 핵심 KPI — 기대수명(생명) 중심
+le_2007   <- round(glob$uw[glob$year==LAST], 1)                       # 2007 세계 평균 수명
+le_gain   <- round(glob$uw[glob$year==LAST] - glob$uw[glob$year==FIRST], 1)  # 55년간 증가
+top_le    <- g07[which.max(g07$lifeExp), ]                            # 2007 최장수국
+le_max    <- round(top_le$lifeExp, 1); le_max_country <- top_le$country
 fit       <- lm(lifeExp ~ loggdp, data = gap)
 r2        <- round(summary(fit)$r.squared, 2)
-n_country <- n_distinct(gap$country)
 ```
 
 # 개요
@@ -51,29 +52,23 @@ n_country <- n_distinct(gap$country)
 
 ```{r}
 #| content: valuebox
-#| title: "분석 국가"
-list(icon = "globe-americas", color = "primary", value = n_country)
+#| title: "세계 평균 기대수명 (2007)"
+list(icon = "heart-pulse-fill", color = "success",
+     value = sprintf("%.1f세", le_2007))
 ```
 
 ```{r}
 #| content: valuebox
-#| title: "분석 기간"
-list(icon = "calendar-range", color = "secondary",
-     value = sprintf("%d–%d", FIRST, LAST))
-```
-
-```{r}
-#| content: valuebox
-#| title: "기대수명 증가 (세계 평균)"
-list(icon = "heart-pulse", color = "success",
+#| title: "기대수명 증가 (1952→2007)"
+list(icon = "graph-up-arrow", color = "primary",
      value = sprintf("+%.1f세", le_gain))
 ```
 
 ```{r}
 #| content: valuebox
-#| title: "1인당 GDP 배수"
-list(icon = "graph-up-arrow", color = "info",
-     value = sprintf("×%.1f", gdp_mult))
+list(title = sprintf("최장수국 · %s (2007)", le_max_country),
+     icon = "trophy-fill", color = "info",
+     value = sprintf("%.1f세", le_max))
 ```
 
 ## Row {height="75%"}
