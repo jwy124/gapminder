@@ -9,7 +9,7 @@ format:
     theme: [cosmo, custom.scss]
     nav-buttons: [github]
     scrolling: false
-    embed-resources: true
+    embed-resources: false
 execute:
   warning: false
   message: false

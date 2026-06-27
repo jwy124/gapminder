@@ -5,7 +5,7 @@ lang: ko
 format:
   html:
     theme: [cosmo, document/custom.scss]
-    embed-resources: true
+    embed-resources: false
     toc: false
     page-layout: full
 execute:
